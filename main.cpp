@@ -59,249 +59,238 @@ template <class T, class V> void _print(unordered_map <T, V> v) {cerr << "[ "; f
 
 /*######################################################################################################################################*/
 /*SOLUTION*/ 
-class Cost{
+
+class LocCost{
 public:
-  int g; // depth
-  int h; // no of tiles
-  int f; // g+f
-  vector<vector<vector<int>>> path;
-  vector<vector<int>> puzz;
+  pair<int,int> location;
+  vector<pair<int,int>> path;
+  int hero;
   bool reached = false;
-  pair<int,int> blank;
-  string direction;
-  Cost(){
-
+  LocCost(pair<int,int> loc,int h){
+    this->location = loc;
+    this->hero = h;
+    if(h == 0){
+      reached = true;
+    } 
   }
-  Cost(int g,vector<vector<int>>& puzz,vector<vector<int>>& goal,pair<int,int>& blank){
-    this->g = g;
-    this->h = calcHero(puzz,goal);
-    this->f = this->g+this->h;
-    this->puzz = puzz;
-    this->blank.first = blank.first;
-    this->blank.second = blank.second;
-  }
-
-private:
-  int calcHero(vector<vector<int>>& puzz,vector<vector<int>>& goal){
-    int cost = 0;
-    int n = puzz.size();
-    for(int i=0;i<n;i++){
-      for(int j = 0;j < n;j++){
-        if(puzz[i][j] != 0 && puzz[i][j] != goal[i][j]){
-          cost++;
-        }
-      }
-    }
-    if(cost == 0){
-      this->reached = true;
-    }
-    return cost;
-  }
-
-private:
-  pair<int,int> coord(vector<vector<int>>& puzz,int num){
-    for(int i = 0;i<puzz.size();i++){
-      for(int j=0;j<puzz.size();j++){
-        if(puzz[i][j] == num){
-          return {i,j};
-        }
-      }
-    }
-    return {-1,-1};
-  }
-  int manhattan(vector<vector<int>>& puzz,vector<vector<int>>& goal){
-    int cost = 0;
-    int n = puzz.size();
-    pair<int,int> t1t2;
-    for(int i=0;i<n;i++){
-      for(int j = 0;j<n;j++){
-        t1t2 = coord(puzz,goal[i][j]);
-        cost += abs(i - t1t2.first) + abs(j - t1t2.second);
-      }
-    }
-    if(cost == 0){
-      this->reached = true;
-    }
-    return cost;
-    if(cost == 0){
-      this->reached = true;
-    }
-    return cost;
-  }
-
 };
 
 class Compare{
 public:
-  int operator()(const Cost& c1,const Cost& c2){
-    return c1.f > c2.f;
+  int operator()(const LocCost& l1,const LocCost& l2){
+    return l1.hero > l2.hero;
   }
 };
 
-void runAstar(vector<vector<int>>& puzz,vector<vector<int>>& goal,pair<int,int>& blank){
-  priority_queue<Cost, vector<Cost>, Compare> pq;
-  Cost iniCost(0,puzz,goal,blank);
-  iniCost.direction = "Initial";
-  pq.push(iniCost);
-  bool flag = false;
-  map<vector<vector<int>>,bool> alreadyDone;
-  Cost ans;
-  alreadyDone[puzz] = true;
-
+void ratRun(vector<vector<int>>& maze,pair<int,int>& start,pair<int,int>& goal){
   
-  while(!pq.empty()){
-    Cost current = pq.top();pq.pop();
-    
-    vector<vector<int>> puzz = current.puzz;
-    int n = puzz.size();
-    pair<int,int> position = current.blank;
-    int i = position.first;
-    int j = position.second;
-    int depth = current.g;
-    // vector<int> vec{depth,current.h,current.f};
-    
+  
+  priority_queue<LocCost,vector<LocCost>,Compare> pq;
+  
+  LocCost ll(start,maze[start.first][start.second]);
+  vector<pair<int,int>> ansPath;
+  pq.push(ll);
 
+  bool flag = false;
+  map<pair<int,int>,bool> visited;
+  visited[start] = true;
+  int n = maze.size();
+
+  int size = pq.size();
+  for(auto& vec:maze){
+    for(auto& val:vec){
+      cout<<val<<" ";
+    }
+    cout<<endl;
+  }
+
+  while(!pq.empty()){
+    auto current  = pq.top();pq.pop();
     if(current.reached == true){
       flag = true;
-      current.path.emplace_back(current.puzz);
-      ans = current;
+      ansPath = current.path;
+      ansPath.emplace_back(current.location);
       break;
     }
-    // left
-    if(j-1 >= 0){
-      swap(puzz[i][j-1],puzz[i][j]);
-      pair<int,int> bb;
-      bb.first = i;
-      bb.second = j-1;
-      if(alreadyDone.find(puzz) == alreadyDone.end()){
-        Cost leftMove(depth+1,puzz,goal,bb);
-        if(current.path.size()>0){
-          for(auto matrix:current.path){
-            leftMove.path.emplace_back(matrix);
-          }
-        }
-        leftMove.path.emplace_back(current.puzz);
-        leftMove.direction = "Left";
-        pq.push(leftMove);
-        alreadyDone[puzz] = true;
-      }
-      swap(puzz[i][j-1],puzz[i][j]);
-    }
-    // right
-    if(j+1 < n){
-      swap(puzz[i][j+1],puzz[i][j]);
-      pair<int,int> bb;
-      bb.first = i;
-      bb.second = j+1;
-      if(alreadyDone.find(puzz) == alreadyDone.end()){
-        Cost rightMove(depth+1,puzz,goal,bb);
-        if(current.path.size()>0){
-          for(auto matrix:current.path){
-            rightMove.path.emplace_back(matrix);
-          }
-        }
-        rightMove.path.emplace_back(current.puzz);
-        rightMove.direction = "Right";
-        pq.push(rightMove);
-        alreadyDone[puzz] = true;
-      }
-      swap(puzz[i][j+1],puzz[i][j]);
-    }
-    // up
-    if(i-1 >= 0){
-      swap(puzz[i-1][j],puzz[i][j]);
-      pair<int,int> bb;
-      bb.first = i-1;
-      bb.second = j;
 
-      if(alreadyDone.find(puzz) == alreadyDone.end()){
-        Cost upMove(depth+1,puzz,goal,bb);
-        if(current.path.size()>0){
-          for(auto matrix:current.path){
-            upMove.path.emplace_back(matrix);
-          }
-        }
-        upMove.path.emplace_back(current.puzz);
-        upMove.direction = "Up";
-        pq.push(upMove);
-        alreadyDone[puzz] = true;
-      }
-      swap(puzz[i-1][j],puzz[i][j]);
+    pair<int,int> position = current.location;
+    int i = position.first;
+    int j = position.second;
+    
+    if(position.first == goal.first && position.second == goal.second){
+      flag = true;
+      ansPath = current.path;
+      ansPath.emplace_back(current.location);
+      break;
     }
-    // down
-    if(i+1 < n){
-      swap(puzz[i+1][j],puzz[i][j]);
-      pair<int,int> bb;
-      bb.first = i+1;
-      bb.second = j;
-      if(alreadyDone.find(puzz) == alreadyDone.end()){
-        Cost downMove(depth+1,puzz,goal,bb);
-        if(current.path.size()>0){
-          for(auto matrix:current.path){
-            downMove.path.emplace_back(matrix);
+    // 8 options
+    // up
+
+    if(i-1 >= 0 && maze[i-1][j] != -1){
+      pair<int,int> newCord = {i-1,j};
+      if(visited.find(newCord) == visited.end()){
+        LocCost upll(newCord,maze[i-1][j]);
+        if(current.path.size() > 0){
+          for(auto& pr:current.path){
+            upll.path.emplace_back(pr);
           }
         }
-        downMove.path.emplace_back(current.puzz);
-        downMove.direction = "Down";
-        pq.push(downMove);
-        alreadyDone[puzz] = true;
+        upll.path.emplace_back(current.location);
+        pq.push(upll);
+        visited[newCord] = true;
       }
-      swap(puzz[i+1][j],puzz[i][j]);
+    }
+
+    //down
+    if(i+1 < n && maze[i+1][j] != -1){
+      pair<int,int> newCord = {i+1,j};
+      if(visited.find(newCord) == visited.end()){
+        LocCost downll(newCord,maze[i+1][j]);
+        if(current.path.size() > 0){
+          for(auto& pr:current.path){
+            downll.path.emplace_back(pr);
+          }
+        }
+        downll.path.emplace_back(current.location);
+        pq.push(downll);
+        visited[newCord] = true;
+      }
+    }
+
+    //left
+    if(j-1 >= 0 && maze[i][j-1] != -1){
+      pair<int,int> newCord = {i,j-1};
+      if(visited.find(newCord) == visited.end()){
+        LocCost leftll(newCord,maze[i][j-1]);
+        if(current.path.size() > 0){
+          for(auto& pr:current.path){
+            leftll.path.emplace_back(pr);
+          }
+        }
+        leftll.path.emplace_back(current.location);
+        pq.push(leftll);
+        visited[newCord] = true;
+      }
+    }
+    //right
+    if(j+1 < n && maze[i][j+1] != -1){
+      pair<int,int> newCord = {i,j+1};
+      if(visited.find(newCord) == visited.end()){
+        LocCost rightll(newCord,maze[i][j+1]);
+        if(current.path.size() > 0){
+          for(auto& pr:current.path){
+            rightll.path.emplace_back(pr);
+          }
+        }
+        rightll.path.emplace_back(current.location);
+        pq.push(rightll);
+        visited[newCord] = true;
+      }
+    }
+
+    // diagonal1
+
+    if(i-1 >= 0 && j-1 >= 0 && maze[i-1][j-1] != -1){
+      pair<int,int> newCord = {i-1,j-1};
+      if(visited.find(newCord) == visited.end()){
+        LocCost dig1ll(newCord,maze[i-1][j-1]);
+        if(current.path.size() > 0){
+          for(auto& pr:current.path){
+            dig1ll.path.emplace_back(pr);
+          }
+        }
+        dig1ll.path.emplace_back(current.location);
+        pq.push(dig1ll);
+        visited[newCord] = true;
+      }
+    }
+
+    //diagonal2
+
+    if(i-1 >= 0 && j+1 < n && maze[i-1][j+1] != -1){
+      pair<int,int> newCord = {i-1,j+1};
+      if(visited.find(newCord) == visited.end()){
+        LocCost dig2ll(newCord,maze[i-1][j+1]);
+        if(current.path.size() > 0){
+          for(auto& pr:current.path){
+            dig2ll.path.emplace_back(pr);
+          }
+        }
+        dig2ll.path.emplace_back(current.location);
+        pq.push(dig2ll);
+        visited[newCord] = true;
+      }
+    }
+
+    //diagonal3
+
+    if(i+1 < n && j-1 >= 0 && maze[i+1][j-1] != -1){
+      pair<int,int> newCord = {i+1,j-1};
+      if(visited.find(newCord) == visited.end()){
+        LocCost dig3ll(newCord,maze[i+1][j-1]);
+        if(current.path.size() > 0){
+          for(auto& pr:current.path){
+            dig3ll.path.emplace_back(pr);
+          }
+        }
+        dig3ll.path.emplace_back(current.location);
+        pq.push(dig3ll);
+        visited[newCord] = true;
+      }
+    }
+
+    //diagonal4
+    if(i+1 < n && j+1 < n && maze[i+1][j+1] != -1){
+      pair<int,int> newCord = {i+1,j+1};
+      if(visited.find(newCord) == visited.end()){
+        LocCost dig4ll(newCord,maze[i+1][j+1]);
+        if(current.path.size() > 0){
+          for(auto& pr:current.path){
+            dig4ll.path.emplace_back(pr);
+          }
+        }
+        dig4ll.path.emplace_back(current.location);
+        pq.push(dig4ll);
+        visited[newCord] = true;
+      }
     }
   }
-  if(flag == true){
-    cout<<"Reached"<<endl;
+
+  if(flag){
+    debug(true);
+    for(auto& pr:ansPath){
+      debug(pr);
+    }
+
   }else{
-    int size = pq.size();
-    cout<<"Not Reached"<<endl;
-    debug(size);
+    debug(false);
   }
-  cout<<endl;
-  cout<<"Path Printing : "<<endl;
-  int s = ans.path.size();
-  debug(s)
-  for(auto& matrix:ans.path){
-    for(auto& vec:matrix){
-      for(auto& val:vec){
-        cout<<val<<" ";
-      }
-      cout<<endl;
-    }
-    cout<<endl<<endl;
-  }
+
 }
 
 void solve(){
-  vector<vector<int>> goal(3,vector<int>(3,0));
-  vector<vector<int>> puzz(3,vector<int>(3,0));
+  int n1 = 10,n2 = 10;
+  vector<vector<int>> maze(n1,vector<int>(n2,-1));
+      maze = {
+              {-1,4,2,3,4,2,2,4,-1,-1},
+              {-1, 5, 2 ,-1, -1 ,-1, 2 ,5, 4 ,-1},
+              {-1, 6, 1 ,1 ,3, 4 ,1 ,-1, 3, -1},
+              {-1, 5, -1 ,-1, 2 ,-1, 1, -1, 3 ,-1},
+              {-1 ,3,-1 ,-1, 2 ,-1 ,2, -1, 6, -1},
+              {-1 ,2 ,-1 ,-1, 2 ,-1 ,1, 3, 4, 4 },
+              {-1, 2, 1, 3 ,4 ,-1, 1 ,-1 ,-1 ,5},
+              {-1 ,3, -1 ,-1 ,3 ,2,1, -1, -1 ,3},
+              {-1 ,2, -1 ,-1 ,-1 ,-1 ,1 ,-1 ,2, 2},
+              {-1 ,1 ,2 ,2 ,1 ,1, 0 ,-1, 1, -1}
+            };
 
-  goal[0][0] = 2;
-  goal[0][1] = 8;
-  goal[0][2] = 1;
-  goal[1][0] = 0;
-  goal[1][1] = 4;
-  goal[1][2] = 3;
-  goal[2][0] = 7;
-  goal[2][1] = 6;
-  goal[2][2] = 5;
+    pair<int,int> start,goal;
+    // int a,b;cin>>a,b;
+    // int c,d;cin>>c,d;
+    start = {0,4};
+    goal = {9,6};
+    ratRun(maze,start,goal);
 
-  // initial state:
-  pair<int,int> blank;
-
-  puzz = {{1,2,3},
-          {8,0,4},
-          {7,6,5}};
-
-  for(int i=0;i<3;i++){
-    for(int j=0;j<3;j++){
-      //cin>>puzz[i][j];
-      if(puzz[i][j] == 0){
-        blank.first = i;
-        blank.second = j;
-      }
-    }
-  }
-  runAstar(puzz,goal,blank);
 }
 
 /*######################################################################################################################################*/
